@@ -1,0 +1,20 @@
+---
+title: "Spam Email Classification Analysis"
+author: "DAS Group 24"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+# Introduction
+This report analyzes the characteristics of spam emails using a Generalized Linear Model (GLM).
+
+# Exploratory Data Analysis
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Load dataset
+df <- read.csv("dataset24.csv")
+
+# Summary statistics
+summary(df)
