@@ -1,20 +1,82 @@
 ---
 title: "Spam Email Classification Analysis"
 author: "DAS Group 24"
-date: "`r Sys.Date()`"
-output: pdf_document
+format: html
+editor: visual
 ---
 
 # Introduction
+
 This report analyzes the characteristics of spam emails using a Generalized Linear Model (GLM).
 
 # Exploratory Data Analysis
+
 ```{r}
-library(ggplot2)
-library(dplyr)
+library(tidyverse)    
+library(moderndive)   
+library(gapminder)    
+library(stats)        
+library(jtools)       
+library(sjPlot)       
+```
 
-# Load dataset
-df <- read.csv("dataset24.csv")
+```{r}
+spam_data<-read.csv("C:/Users/24981/Documents/temp/DAS-Group-24/dataset24.csv")
 
-# Summary statistics
-summary(df)
+
+spam_data <- spam_data %>%
+  mutate(yesno = factor(yesno, levels = c("n", "y")))
+
+glimpse(spam_data)
+
+spam_data %>%
+  summarise_all(~ sum(is.na(.)))
+
+ggplot(spam_data, aes(x = yesno, y = crl.tot, fill = yesno)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Capital Run Length by Email Type",
+       x = "Email Type", y = "Total Capital Run Length") +
+  theme(legend.position = "none") +
+  coord_cartesian(ylim = c(0, quantile(spam_data$crl.tot, 0.95)))
+
+ggplot(spam_data, aes(x = yesno, y = dollar, fill = yesno)) +
+  geom_boxplot() +
+  labs(title = "Dollar Sign Frequency by Email Type",
+       x = "Email Type", y = "Dollar Sign Frequency") +
+  theme(legend.position = "none") +
+  coord_cartesian(ylim = c(0, quantile(spam_data$dollar, 0.95)))
+
+ggplot(spam_data, aes(x = yesno, y = bang, fill = yesno)) +
+  geom_boxplot() +
+  labs(title = "Exclamation Mark Frequency by Email Type",
+       x = "Email Type", y = "Exclamation Mark Frequency") +
+  theme(legend.position = "none")+
+  coord_cartesian(ylim = c(0, quantile(spam_data$bang, 0.95)))
+
+glm_model <- glm(yesno ~ crl.tot + dollar + bang + money + n000 + make, 
+                 data = spam_data, family = binomial)
+
+summary(glm_model)
+
+summ(glm_model, confint = TRUE, digits = 3)
+
+plot_model(glm_model, show.values = TRUE, transform = NULL,
+           title = "Log-Odds of Spam Email Features", show.p = TRUE)
+
+plot_model(glm_model, show.values = TRUE, transform = "exp",
+           title = "Odds of Spam Email Features", show.p = TRUE)
+
+model_coefs <- coef(glm_model)
+
+logit_pred <- model_coefs["(Intercept)"] + model_coefs["crl.tot"] * 100
+
+spam_prob <- plogis(logit_pred)
+spam_prob
+
+spam_data <- spam_data %>%
+  mutate(probs.spam = predict(glm_model, type = "response"))
+
+plot_model(glm_model, type = "pred", terms = "crl.tot",
+           title = "Predicted Probability of Spam Email",
+           axis.title = c("Total Capital Run Length", "Probability of Spam Email"))
+```
