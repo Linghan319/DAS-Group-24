@@ -53,6 +53,26 @@ ggplot(spam_data, aes(x = yesno, y = bang, fill = yesno)) +
   theme(legend.position = "none")+
   coord_cartesian(ylim = c(0, quantile(spam_data$bang, 0.95)))
 
+ggplot(spam_data, aes(x = yesno, y = money, fill = yesno)) +
+  geom_boxplot() +
+  labs(title = "The Term 'Money' Frequency by Email Type",
+       x = "Email Type", y = "Occurrences of ‘money’") +
+  theme(legend.position = "none")+
+  coord_cartesian(ylim = c(0, quantile(spam_data$money, 0.95)))
+
+ggplot(spam_data, aes(x = yesno, y = n000, fill = yesno)) +
+  geom_boxplot() +
+  labs(title = "The Term '000' Frequency by Email Type",
+       x = "Email Type", y = "Occurrences of ‘000’") +
+  theme(legend.position = "none")
+
+ggplot(spam_data, aes(x = yesno, y = make, fill = yesno)) +
+  geom_boxplot() +
+  labs(title = "The Term 'make' Frequency by Email Type",
+       x = "Email Type", y = "Occurrences of ‘make’") +
+  theme(legend.position = "none")+
+  coord_cartesian(ylim = c(0, quantile(spam_data$make, 0.95)))
+
 glm_model <- glm(yesno ~ crl.tot + dollar + bang + money + n000 + make, 
                  data = spam_data, family = binomial)
 
