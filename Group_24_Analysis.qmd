@@ -12,6 +12,7 @@ This report analyzes the characteristics of spam emails using a Generalized Line
 # Exploratory Data Analysis
 
 ```{r}
+# Load required libraries
 library(tidyverse)    
 library(moderndive)   
 library(gapminder)    
@@ -21,82 +22,143 @@ library(sjPlot)
 ```
 
 ```{r}
-spam_data<-read.csv("C:/Users/24981/Documents/temp/DAS-Group-24/dataset24.csv")
+# Read the CSV file
+spam_data <- read.csv("/Users/sweatermulii/Desktop/data analytics/DAS/project 2/dataset24.csv")
 
-
+# Convert the 'yesno' column to a factor with levels 'n' for 'no' and 'y' for 'yes'
 spam_data <- spam_data %>%
   mutate(yesno = factor(yesno, levels = c("n", "y")))
 
+# View the structure of the dataset
 glimpse(spam_data)
 
+# Summarize the missing values in each column
 spam_data %>%
   summarise_all(~ sum(is.na(.)))
+```
 
-ggplot(spam_data, aes(x = yesno, y = crl.tot, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "Distribution of Uninterrupted Capitals Length by Email Type",
-       x = "Email Type", y = "Total length of uninterrupted sequences of capitals") +
-  theme(legend.position = "none") +
+```{r}
+library(gridExtra)
+# Create boxplots for each variable
+p1 <- ggplot(spam_data, aes(x = yesno, y = crl.tot, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "Length of crl") +
+  theme_minimal() +
   coord_cartesian(ylim = c(0, quantile(spam_data$crl.tot, 0.95)))
 
-ggplot(spam_data, aes(x = yesno, y = dollar, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "Dollar Sign Frequency by Email Type",
-       x = "Email Type", y = "Dollar Sign Frequency") +
-  theme(legend.position = "none") +
+p2 <- ggplot(spam_data, aes(x = yesno, y = dollar, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "dollar") +
+  theme_minimal() +
   coord_cartesian(ylim = c(0, quantile(spam_data$dollar, 0.95)))
 
-ggplot(spam_data, aes(x = yesno, y = bang, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "Exclamation Mark Frequency by Email Type",
-       x = "Email Type", y = "Exclamation Mark Frequency") +
-  theme(legend.position = "none")+
+p3 <- ggplot(spam_data, aes(x = yesno, y = bang, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "bang") +
+  theme_minimal() +
   coord_cartesian(ylim = c(0, quantile(spam_data$bang, 0.95)))
 
-ggplot(spam_data, aes(x = yesno, y = money, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "The Term 'Money' Frequency by Email Type",
-       x = "Email Type", y = "Occurrences of ‘money’") +
-  theme(legend.position = "none")+
+p4 <- ggplot(spam_data, aes(x = yesno, y = money, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "money") +
+  theme_minimal() +
   coord_cartesian(ylim = c(0, quantile(spam_data$money, 0.95)))
 
-ggplot(spam_data, aes(x = yesno, y = n000, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "The Term '000' Frequency by Email Type",
-       x = "Email Type", y = "Occurrences of ‘000’") +
-  theme(legend.position = "none")
+p5 <- ggplot(spam_data, aes(x = yesno, y = n000, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "n000") +
+  theme_minimal() +
+  coord_cartesian(ylim = c(0, quantile(spam_data$n000, 0.95)))
 
-ggplot(spam_data, aes(x = yesno, y = make, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "The Term 'make' Frequency by Email Type",
-       x = "Email Type", y = "Occurrences of ‘make’") +
-  theme(legend.position = "none")+
+p6 <- ggplot(spam_data, aes(x = yesno, y = make, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "make") +
+  theme_minimal() +
   coord_cartesian(ylim = c(0, quantile(spam_data$make, 0.95)))
 
-glm_model <- glm(yesno ~ crl.tot + dollar + bang + money + n000 + make, 
+# Arrange all boxplots into a single canvas
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+```
+
+# Binary logistic regression
+
+```{r}
+# Log-transform the selected numeric columns
+spam_data <- spam_data %>%
+  mutate(across(c(crl.tot, dollar, bang, money, n000, make), 
+                ~ log(. + 1), .names = "log_{.col}"))
+# Fit a logistic regression model
+glm_model <- glm(yesno ~ log_crl.tot + log_dollar + log_bang + log_money + log_n000 + log_make, 
                  data = spam_data, family = binomial)
+```
 
+```{r}
+# View the model summary
 summary(glm_model)
+```
 
+```{r}
 summ(glm_model, confint = TRUE, digits = 3)
+```
 
+# Log-odds
+
+```{r}
+# Plot the model coefficients in log-odds scale
 plot_model(glm_model, show.values = TRUE, transform = NULL,
            title = "Log-Odds of Spam Email Features", show.p = TRUE)
+```
 
+# Odds
+
+```{r}
+# Plot the model coefficients in odds ratio scale
 plot_model(glm_model, show.values = TRUE, transform = "exp",
            title = "Odds of Spam Email Features", show.p = TRUE)
+```
 
-model_coefs <- coef(glm_model)
+```{r}
+# Calculate the odds ratios from the model coefficients
+exp(coef(glm_model))
 
-logit_pred <- model_coefs["(Intercept)"] + model_coefs["crl.tot"] * 100
+# Calculate probabilities from the logistic regression model
+probabilities <- plogis(predict(glm_model))
+head(probabilities)
+```
 
-spam_prob <- plogis(logit_pred)
-spam_prob
-
+```{r}
+# Add log-odds, odds, and probabilities to the dataset
 spam_data <- spam_data %>%
-  mutate(probs.spam = predict(glm_model, type = "response"))
+  mutate(logodds = predict(glm_model),
+         odds = exp(logodds),
+         probs = fitted(glm_model))
 
-plot_model(glm_model, type = "pred", terms = "crl.tot",
-           title = "Predicted Probability of Spam Email",
-           axis.title = c("Total Capital Run Length", "Probability of Spam Email"))
+head(spam_data)
+```
+
+# Probabilities
+
+```{r}
+# Plot predicted probabilities for each variable
+plot_model(glm_model, type = "pred", terms = "log_crl.tot [all]")
+```
+
+```{r}
+plot_model(glm_model, type = "pred", terms = "log_dollar [all]")
+```
+
+```{r}
+plot_model(glm_model, type = "pred", terms = "log_bang [all]")
+```
+
+```{r}
+plot_model(glm_model, type = "pred", terms = "log_money [all]")
+```
+
+```{r}
+plot_model(glm_model, type = "pred", terms = "log_n000 [all]")
+```
+
+```{r}
+plot_model(glm_model, type = "pred", terms = "log_make [all]")
 ```
