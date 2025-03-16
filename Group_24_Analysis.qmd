@@ -88,9 +88,6 @@ plot_model(glm_model, show.values = TRUE, transform = "exp",
 
 model_coefs <- coef(glm_model)
 
-spam_prob <- plogis(logit_pred)
-spam_prob
-
 spam_data <- spam_data %>%
   mutate(probs.spam = predict(glm_model, type = "response"))
 
