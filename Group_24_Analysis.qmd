@@ -34,8 +34,8 @@ spam_data %>%
 
 ggplot(spam_data, aes(x = yesno, y = crl.tot, fill = yesno)) +
   geom_boxplot() +
-  labs(title = "Distribution of Capital Run Length by Email Type",
-       x = "Email Type", y = "Total Capital Run Length") +
+  labs(title = "Distribution of Uninterrupted Capitals Length by Email Type",
+       x = "Email Type", y = "Total length of uninterrupted sequences of capitals") +
   theme(legend.position = "none") +
   coord_cartesian(ylim = c(0, quantile(spam_data$crl.tot, 0.95)))
 
