@@ -32,48 +32,49 @@ glimpse(spam_data)
 spam_data %>%
   summarise_all(~ sum(is.na(.)))
 
-ggplot(spam_data, aes(x = yesno, y = crl.tot, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "Distribution of Uninterrupted Capitals Length by Email Type",
-       x = "Email Type", y = "Total length of uninterrupted sequences of capitals") +
-  theme(legend.position = "none") +
+p1 <- ggplot(spam_data, aes(x = yesno, y = crl.tot, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "Length of crl") +
+  theme_minimal() +
   coord_cartesian(ylim = c(0, quantile(spam_data$crl.tot, 0.95)))
 
-ggplot(spam_data, aes(x = yesno, y = dollar, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "Dollar Sign Frequency by Email Type",
-       x = "Email Type", y = "Dollar Sign Frequency") +
-  theme(legend.position = "none") +
+p2 <- ggplot(spam_data, aes(x = yesno, y = dollar, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "dollar") +
+  theme_minimal() +
   coord_cartesian(ylim = c(0, quantile(spam_data$dollar, 0.95)))
 
-ggplot(spam_data, aes(x = yesno, y = bang, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "Exclamation Mark Frequency by Email Type",
-       x = "Email Type", y = "Exclamation Mark Frequency") +
-  theme(legend.position = "none")+
+p3 <- ggplot(spam_data, aes(x = yesno, y = bang, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "bang") +
+  theme_minimal() +
   coord_cartesian(ylim = c(0, quantile(spam_data$bang, 0.95)))
 
-ggplot(spam_data, aes(x = yesno, y = money, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "The Term 'Money' Frequency by Email Type",
-       x = "Email Type", y = "Occurrences of ‘money’") +
-  theme(legend.position = "none")+
+p4 <- ggplot(spam_data, aes(x = yesno, y = money, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "money") +
+  theme_minimal() +
   coord_cartesian(ylim = c(0, quantile(spam_data$money, 0.95)))
 
-ggplot(spam_data, aes(x = yesno, y = n000, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "The Term '000' Frequency by Email Type",
-       x = "Email Type", y = "Occurrences of ‘000’") +
-  theme(legend.position = "none")
+p5 <- ggplot(spam_data, aes(x = yesno, y = n000, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "n000") +
+  theme_minimal() +
+  coord_cartesian(ylim = c(0, quantile(spam_data$n000, 0.95)))
 
-ggplot(spam_data, aes(x = yesno, y = make, fill = yesno)) +
-  geom_boxplot() +
-  labs(title = "The Term 'make' Frequency by Email Type",
-       x = "Email Type", y = "Occurrences of ‘make’") +
-  theme(legend.position = "none")+
-  coord_cartesian(ylim = c(0, quantile(spam_data$make, 0.95)))
+p5 <- ggplot(spam_data, aes(x = yesno, y = n000, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "n000") +
+  theme_minimal() +
+  coord_cartesian(ylim = c(0, quantile(spam_data$n000, 0.95)))
 
-glm_model <- glm(yesno ~ crl.tot + dollar + bang + money + n000 + make, 
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+
+spam_data <- spam_data %>%
+  mutate(across(c(crl.tot, dollar, bang, money, n000, make), 
+                ~ log(. + 1), .names = "log_{.col}"))
+
+glm_model <- glm(yesno ~ log_crl.tot + log_dollar + log_bang + log_money + log_n000 + log_make, 
                  data = spam_data, family = binomial)
 
 summary(glm_model)
