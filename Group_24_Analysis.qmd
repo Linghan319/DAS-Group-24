@@ -170,6 +170,3 @@ plot_model(glm_model, type = "pred", terms = "log_money [all]")
 plot_model(glm_model, type = "pred", terms = "log_n000 [all]")
 ```
 
-```{r}
-plot_model(glm_model, type = "pred", terms = "log_make [all]")
-```
