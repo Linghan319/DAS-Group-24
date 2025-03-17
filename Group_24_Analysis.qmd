@@ -88,7 +88,18 @@ spam_data <- spam_data %>%
   mutate(across(c(crl.tot, dollar, bang, money, n000, make), 
                 ~ log(. + 1), .names = "log_{.col}"))
 # Fit a logistic regression model
-glm_model <- glm(yesno ~ log_crl.tot + log_dollar + log_bang + log_money + log_n000 + log_make, 
+glm <- glm(yesno ~ log_crl.tot + log_dollar + log_bang + log_money + log_n000 + log_make, 
+                 data = spam_data, family = binomial)
+
+# View the model summary
+summary(glm)
+summ(glm, confint = TRUE, digits = 3)
+```
+
+```{r}
+
+# Fit a logistic regression model (without variable "make")
+glm_model <- glm(yesno ~ log_crl.tot + log_dollar + log_bang + log_money + log_n000, 
                  data = spam_data, family = binomial)
 ```
 
