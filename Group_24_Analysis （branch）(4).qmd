@@ -1,0 +1,264 @@
+---
+title: "Spam Email Classification Analysis"
+author: "DAS Group 24"
+format: html
+editor: visual
+---
+
+# Introduction
+
+In today's digital communication landscape, spam emails represent a significant challenge for individuals and organizations alike. This report examines the characteristics of spam emails using a Generalized Linear Model (GLM) applied to dataset 24 from the UCI Machine Learning Repository, originally collected by Hewlett-Packard Labs.
+
+Our analysis aims to identify the textual features that most strongly predict whether an email is spam. By understanding these patterns, we can support the development of more effective spam filtering algorithms, helping to improve email security and efficiency for end users.
+
+The dataset contains information about various text characteristics found in emails along with a binary classification indicating whether each email was spam. Through statistical modeling, we seek to quantify the relationship between these features and spam probability.
+
+# Exploratory Data Analysis
+
+```{r}
+# Load required libraries
+library(tidyverse)    
+library(moderndive)   
+library(gapminder)    
+library(stats)        
+library(jtools)       
+library(sjPlot)       
+```
+
+```{r}
+# Read the CSV file
+spam_data <- read.csv("dataset24.csv")
+
+# Convert the 'yesno' column to a factor with levels 'n' for 'no' and 'y' for 'yes'
+spam_data <- spam_data %>%
+  mutate(yesno = factor(yesno, levels = c("n", "y")))
+
+# View the structure of the dataset
+glimpse(spam_data)
+
+# Summarize the missing values in each column
+spam_data %>%
+  summarise_all(~ sum(is.na(.)))
+```
+
+Our dataset consists of 921 observations with 7 variables, including 6 potential predictors and 1 response variable. These variables include:
+
+-   **crl.tot**: Total length of uninterrupted sequences of capital letters
+-   **dollar**: Occurrences of the dollar sign as a percentage of total characters
+-   **bang**: Occurrences of exclamation marks as a percentage of total characters
+-   **money**: Occurrences of the word "money" as a percentage of total characters
+-   **n000**: Occurrences of the string "000" as a percentage of total characters
+-   **make**: Occurrences of the word "make" as a percentage of total characters
+-   **yesno**: A binary factor indicating whether the email was spam ('y') or not ('n')
+
+The data integrity check confirms there are no missing values in any columns, providing a solid foundation for our analysis.
+
+```{r}
+library(gridExtra)
+# Create boxplots for each variable
+p1 <- ggplot(spam_data, aes(x = yesno, y = crl.tot, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "Length of crl") +
+  theme_minimal() +
+  coord_cartesian(ylim = c(0, quantile(spam_data$crl.tot, 0.95)))
+
+p2 <- ggplot(spam_data, aes(x = yesno, y = dollar, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "dollar") +
+  theme_minimal() +
+  coord_cartesian(ylim = c(0, quantile(spam_data$dollar, 0.95)))
+
+p3 <- ggplot(spam_data, aes(x = yesno, y = bang, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "bang") +
+  theme_minimal() +
+  coord_cartesian(ylim = c(0, quantile(spam_data$bang, 0.95)))
+
+p4 <- ggplot(spam_data, aes(x = yesno, y = money, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "money") +
+  theme_minimal() +
+  coord_cartesian(ylim = c(0, quantile(spam_data$money, 0.95)))
+
+p5 <- ggplot(spam_data, aes(x = yesno, y = n000, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "n000") +
+  theme_minimal() +
+  coord_cartesian(ylim = c(0, quantile(spam_data$n000, 0.95)))
+
+p6 <- ggplot(spam_data, aes(x = yesno, y = make, fill = yesno)) + 
+  geom_boxplot() + 
+  labs(x = "Whether it is spam", y = "make") +
+  theme_minimal() +
+  coord_cartesian(ylim = c(0, quantile(spam_data$make, 0.95)))
+
+# Arrange all boxplots into a single canvas
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
+```
+
+The boxplot visualizations reveal clear differences between spam and non-spam emails across most features:
+
+-   **crl.tot**: Spam emails tend to contain longer sequences of capital letters, with the median value substantially higher than in non-spam emails
+-   **dollar**: Dollar sign frequency is noticeably higher in spam emails
+-   **bang**: Exclamation marks appear much more frequently in spam emails, with a substantial difference in distribution
+-   **money**: The word "money" appears more often in spam emails
+-   **n000**: The string "000" is more common in spam emails
+-   **make**: This feature shows less dramatic differences between the two email categories
+
+These initial observations support our intuition that certain textual characteristics are associated with spam emails. The boxplots also reveal highly skewed distributions for most features, suggesting that a transformation might improve model performance.
+
+# Binary logistic regression
+
+$$
+\ln\left(\frac{p}{1-p}\right) =\log(\text{crl.tot}) + \log(\text{dollar}) + \log(\text{bang}) + \log(\text{money}) + \log(\text{n000})
+$$
+
+where p is the probability of "yes".
+
+```{r}
+
+# Log-transform the selected numeric columns
+spam_data <- spam_data %>%
+  mutate(across(c(crl.tot, dollar, bang, money, n000, make), 
+                ~ log(. + 1), .names = "log_{.col}"))
+# Fit a logistic regression model
+glm <- glm(yesno ~ log_crl.tot + log_dollar + log_bang + log_money + log_n000 + log_make, 
+                 data = spam_data, family = binomial)
+
+# View the model summary
+summary(glm)
+summ(glm, confint = TRUE, digits = 3)
+```
+
+We initially constructed a logistic regression model using all six transformed predictors. The model summary reveals that five of the six predictors are statistically significant (p \< 0.001), with "log_make" being the only non-significant variable (p = 0.34). The coefficients indicate that dollar sign frequency has the strongest association with spam classification (coefficient = 6.72), followed by exclamation marks (4.58), "000" strings (3.82), "money" mentions (3.24), and capital letter sequences (0.51).
+
+Given the non-significance of the "make" variable, we proceeded to create a more parsimonious model without this predictor.
+
+```{r}
+
+# Fit a logistic regression model (without variable "make")
+glm_model <- glm(yesno ~ log_crl.tot + log_dollar + log_bang + log_money + log_n000, 
+                 data = spam_data, family = binomial)
+```
+
+```{r}
+# View the model summary
+summary(glm_model)
+```
+
+```{r}
+summ(glm_model, confint = TRUE, digits = 3)
+```
+
+Our refined model demonstrates strong statistical significance for all included predictors. The residual deviance of 674.6 (with 915 degrees of freedom) represents a substantial improvement over the null deviance of 1230.8, indicating good model fit. The AIC value of 686.6 is slightly better than that of the full model (687.71), supporting our decision to remove the non-significant variable.
+
+# Log-odds
+
+```{r}
+# Plot the model coefficients in log-odds scale
+plot_model(glm_model, show.values = TRUE, transform = NULL,
+           title = "Log-Odds of Spam Email Features", show.p = TRUE)
+```
+
+The log-odds coefficients provide critical insights into the relative importance of each feature in predicting spam emails:
+
+-   **log(dollar)**: 6.68 (highest impact)
+-   **log(bang)**: 4.57
+-   **log(n000)**: 3.92
+-   **log(money)**: 3.25
+-   **log(crl.tot)**: 0.51 (lowest impact)
+
+These values indicate that the presence of dollar signs has the strongest predictive power for identifying spam, while the length of capital letter sequences, though statistically significant, has a relatively modest effect.
+
+# Odds
+
+```{r}
+# Plot the model coefficients in odds ratio scale
+plot_model(glm_model, show.values = TRUE, transform = "exp",
+           title = "Odds of Spam Email Features", show.p = TRUE)
+```
+
+```{r}
+# Calculate the odds ratios from the model coefficients
+exp(coef(glm_model))
+
+# Calculate probabilities from the logistic regression model
+probabilities <- plogis(predict(glm_model))
+head(probabilities)
+```
+
+Converting the log-odds to odds ratios makes the effects more interpretable:
+
+-   **dollar**: 800.26
+-   **bang**: 96.81
+-   **n000**: 50.18
+-   **money**: 25.79
+-   **crl.tot**: 1.67
+
+These odds ratios can be interpreted as follows:
+
+-   Holding other variables constant, a one-unit increase in log-transformed dollar sign frequency is associated with approximately 800 times higher odds of an email being spam
+-   A one-unit increase in log-transformed exclamation mark frequency is associated with nearly 97 times higher odds of spam
+-   A one-unit increase in log-transformed "000" string frequency is associated with 50 times higher odds of spam
+-   A one-unit increase in log-transformed "money" word frequency is associated with nearly 26 times higher odds of spam
+-   A one-unit increase in log-transformed capital letter sequence length is associated with only 1.67 times higher odds of spam
+
+```{r}
+# Add log-odds, odds, and probabilities to the dataset
+spam_data <- spam_data %>%
+  mutate(logodds = predict(glm_model),
+         odds = exp(logodds),
+         probs = fitted(glm_model))
+
+head(spam_data)
+```
+
+# Probabilities
+
+```{r}
+# Plot predicted probabilities for each variable
+plot_model(glm_model, type = "pred", terms = "log_crl.tot [all]")
+```
+
+```{r}
+plot_model(glm_model, type = "pred", terms = "log_dollar [all]")
+```
+
+```{r}
+plot_model(glm_model, type = "pred", terms = "log_bang [all]")
+```
+
+```{r}
+plot_model(glm_model, type = "pred", terms = "log_money [all]")
+```
+
+```{r}
+plot_model(glm_model, type = "pred", terms = "log_n000 [all]")
+```
+
+The probability curves illustrate how each feature affects the likelihood of an email being classified as spam:
+
+-   **log(dollar)**: Shows the steepest curve, indicating that even modest increases in dollar sign frequency rapidly raise the probability of an email being spam, approaching 100% at moderate levels
+-   **log(bang)**: Also exhibits a steep curve, with increasing exclamation mark usage strongly associated with higher spam probability
+-   **log(money) and log(n000)**: Both show similar patterns, with steadily increasing spam probability as these features become more prevalent
+-   **log(crl.tot)**: Displays a more gradual slope, confirming the relatively weaker relationship between capital letter usage and spam identification
+
+The relatively narrow confidence intervals (shaded regions) around each curve suggest precise parameter estimates in our model.
+
+# Conclusion
+
+Our analysis has yielded several key findings about text characteristics that influence email spam classification:
+
+1.  The presence of **dollar signs (\$)** emerges as the strongest indicator of spam emails, with a log-odds estimate of 6.68 and an extraordinary odds ratio of 800.26
+2.  **Exclamation marks (!)** represent the second most powerful predictor, with a log-odds of 4.57 and odds ratio of 96.81
+3.  The numerical string **"000"** and the word **"money"** are both substantial predictors, with log-odds of 3.92 and 3.25 respectively
+4.  While **sequences of capital letters** are statistically significant predictors, their effect is comparatively modest
+
+These findings offer valuable insights for developing more effective spam filtering systems:
+
+1.  Email filtering algorithms should prioritize detection of dollar signs and financial terminology, assigning them substantial weight
+2.  Exclamation mark frequency analysis should be implemented, with particular attention to frequencies exceeding certain thresholds
+3.  Numerical patterns like "000" should be incorporated into filtering algorithms
+4.  While capital letter sequences contribute to spam prediction, they should be assigned lower weights than other features
+
+By implementing these recommendations, email systems can enhance their spam detection capabilities, reducing false positives and negatives while improving overall email system efficiency.
