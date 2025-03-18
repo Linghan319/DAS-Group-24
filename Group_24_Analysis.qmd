@@ -1,8 +1,19 @@
 ---
 title: "Spam Email Classification Analysis"
 author: "DAS Group 24"
-format: html
-editor: visual
+number-sections: true
+format: 
+  html:
+    embed-resources: true
+    code-tools: true
+  pdf: default
+editor_options: 
+  chunk_output_type: console
+execute:
+  echo: true
+  eval: true
+  warning: false
+  message: false
 ---
 
 # Introduction
@@ -23,7 +34,7 @@ library(sjPlot)
 
 ```{r}
 # Read the CSV file
-spam_data <- read.csv("/Users/sweatermulii/Desktop/data analytics/DAS/project 2/dataset24.csv")
+spam_data <- read.csv("C:/Users/2986889l/Desktop/New folder/dataset24.csv")
 
 # Convert the 'yesno' column to a factor with levels 'n' for 'no' and 'y' for 'yes'
 spam_data <- spam_data %>%
@@ -87,14 +98,25 @@ grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 2)
 spam_data <- spam_data %>%
   mutate(across(c(crl.tot, dollar, bang, money, n000, make), 
                 ~ log(. + 1), .names = "log_{.col}"))
+```
+
+```{r}
 # Fit a logistic regression model
 glm <- glm(yesno ~ log_crl.tot + log_dollar + log_bang + log_money + log_n000 + log_make, 
                  data = spam_data, family = binomial)
+```
 
+```{r}
 # View the model summary
 summary(glm)
-summ(glm, confint = TRUE, digits = 3)
+confint(glm)
 ```
+
+$$
+\ln\left(\frac{p}{1-p}\right) =\log(\text{crl.tot}) + \log(\text{dollar}) + \log(\text{bang}) + \log(\text{money}) + \log(\text{n000})
+$$
+
+where p is the probability of "yes".
 
 ```{r}
 
@@ -109,7 +131,7 @@ summary(glm_model)
 ```
 
 ```{r}
-summ(glm_model, confint = TRUE, digits = 3)
+confint(glm_model)
 ```
 
 # Log-odds
@@ -169,4 +191,5 @@ plot_model(glm_model, type = "pred", terms = "log_money [all]")
 ```{r}
 plot_model(glm_model, type = "pred", terms = "log_n000 [all]")
 ```
+
 
